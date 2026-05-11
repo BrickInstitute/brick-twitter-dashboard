@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Twitter Gündem Dashboard — Brick Institute</title>
+<style>
+  :root {
+    --bg: #faf8f5;
+    --card: #ffffff;
+    --border: #e8e3dc;
+    --text: #1a1a1a;
+    --muted: #6b6b6b;
+    --accent: #d97757;
+    --accent-light: #fff1ec;
+    --ai: #9b6cd9;
+    --ai-bg: #f3edfb;
+    --ux: #e26ea5;
+    --ux-bg: #fbedf5;
+    --pm: #5a8fd9;
+    --pm-bg: #ecf3fb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Helvetica Neue", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 0;
+    line-height: 1.5;
+  }
+  header {
+    background: white;
+    border-bottom: 1px solid var(--border);
+    padding: 24px 32px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; font-weight: 700; letter-spacing: -0.5px; }
+  .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+  .control-group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .control-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); font-weight: 600; margin-right: 4px; }
+  .chip {
+    padding: 6px 12px; border-radius: 100px; border: 1px solid var(--border);
+    background: white; cursor: pointer; font-size: 13px; font-weight: 500;
+    transition: all 0.15s; white-space: nowrap;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .chip.ai.active { background: var(--ai); border-color: var(--ai); }
+  .chip.ux.active { background: var(--ux); border-color: var(--ux); }
+  .chip.pm.active { background: var(--pm); border-color: var(--pm); }
+  select { padding: 6px 12px; border-radius: 100px; border: 1px solid var(--border); background: white; font-size: 13px; font-family: inherit; cursor: pointer; }
+  main { max-width: 1400px; margin: 0 auto; padding: 32px; }
+  .day-section { margin-bottom: 48px; }
+  .day-header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--accent);
+  }
+  .day-title { font-size: 26px; font-weight: 700; margin: 0; letter-spacing: -0.5px; }
+  .day-count { color: var(--muted); font-size: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 18px; transition: all 0.15s; display: flex; flex-direction: column;
+    cursor: pointer; text-decoration: none; color: inherit; position: relative;
+  }
+  .card:hover { border-color: var(--accent); box-shadow: 0 4px 12px rgba(217,119,87,0.12); transform: translateY(-2px); }
+  .card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
+  .username { font-weight: 700; font-size: 14px; color: var(--accent); }
+  .cat-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .title { font-size: 14px; font-weight: 600; margin: 4px 0 8px; line-height: 1.35; }
+  .notes { font-size: 13px; color: var(--muted); line-height: 1.5; margin-bottom: 12px; flex: 1; }
+  .types { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+  .type-tag { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 100px; background: var(--bg); color: var(--muted); border: 1px solid var(--border); white-space: nowrap; }
+  .type-tag.s-tier { background: #fff0ed; color: #c44a25; border-color: #f0b9a3; }
+  .type-tag.a-tier { background: #fff8e6; color: #a07000; border-color: #f0d895; }
+  .stats { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); padding-top: 10px; border-top: 1px solid var(--border); }
+  .stat { display: flex; gap: 4px; align-items: center; }
+  .stat strong { color: var(--text); font-weight: 600; }
+  .stat.high-views strong { color: #c44a25; }
+  .stat.high-replies strong { color: #c44a25; }
+  .empty-state { text-align: center; padding: 80px 20px; color: var(--muted); }
+  .empty-state h3 { font-size: 18px; color: var(--text); margin-bottom: 8px; }
+  .summary-bar {
+    background: white; border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px 20px; margin-bottom: 32px; display: flex; gap: 32px;
+    flex-wrap: wrap; font-size: 13px;
+  }
+  .summary-stat { display: flex; flex-direction: column; }
+  .summary-stat-label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+  .summary-stat-value { font-size: 18px; font-weight: 700; }
+  .summary-stat-value.accent { color: var(--accent); }
+  .last-update { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  @media (max-width: 700px) {
+    header { padding: 16px; }
+    main { padding: 16px; }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>📰 Twitter Gündem Dashboard</h1>
+  <div class="subtitle">Brick Institute — Yüksek-view + yüksek-tartışma tweet derlemesi <span id="last-update"></span></div>
+  <div class="controls">
+    <div class="control-group">
+      <span class="control-label">Tarih:</span>
+      <div id="date-chips" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+    </div>
+    <div class="control-group">
+      <span class="control-label">Kategori:</span>
+      <button class="chip cat-chip active" data-filter="cat" data-value="all">Tümü</button>
+      <button class="chip cat-chip ai" data-filter="cat" data-value="AI">AI</button>
+      <button class="chip cat-chip ux" data-filter="cat" data-value="UX/UI">UX/UI</button>
+      <button class="chip cat-chip pm" data-filter="cat" data-value="Product Management">PM</button>
+    </div>
+    <div class="control-group">
+      <span class="control-label">İçerik Türü:</span>
+      <select id="type-filter">
+        <option value="all">Tümü</option>
+        <option value="Ürün Tanıtımı">Ürün Tanıtımı</option>
+        <option value="Ürün Yenilik Tanıtımı">Ürün Yenilik Tanıtımı</option>
+        <option value="Yöntem Paylaşımı">Yöntem Paylaşımı</option>
+        <option value="Araştırma Bulgusu">Araştırma Bulgusu (Podcast 🥇)</option>
+        <option value="Sektör Yorumu">Sektör Yorumu</option>
+        <option value="Etik/Risk Tartışması">Etik/Risk Tartışması (Podcast 🥇)</option>
+        <option value="Şirket Haberi">Şirket Haberi</option>
+        <option value="Veri/Benchmark">Veri/Benchmark</option>
+        <option value="Kaynak Listesi">Kaynak Listesi</option>
+        <option value="Vaka/Hikaye">Vaka/Hikaye (Podcast 🥇)</option>
+        <option value="Mizah/Espri">Mizah/Espri</option>
+        <option value="Eleştiri">Eleştiri (Podcast 🥈)</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <span class="control-label">Sırala:</span>
+      <select id="sort-by">
+        <option value="views">View (yüksekten)</option>
+        <option value="replies">Reply (yüksekten)</option>
+        <option value="engagement">Engagement (yüksekten)</option>
+        <option value="likes">Like (yüksekten)</option>
+        <option value="bookmarks">Bookmark (yüksekten)</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <button class="chip" id="podcast-only">🎙️ Sadece Podcast'lik</button>
+    </div>
+  </div>
+</header>
+<main>
+  <div class="summary-bar" id="summary-bar"></div>
+  <div id="content"></div>
+</main>
+<script>
+const TWEETS = ___TWEETS_DATA_PLACEHOLDER___;
+
+const PODCAST_TIERS = {
+  'Araştırma Bulgusu': 's',
+  'Etik/Risk Tartışması': 's',
+  'Vaka/Hikaye': 's',
+  'Eleştiri': 'a',
+  'Sektör Yorumu': 'a'
+};
+
+let filters = { date: 'all', cat: 'all', type: 'all', podcastOnly: false };
+let sortBy = 'views';
+
+const TR_MONTHS = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+const TR_DAYS = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
+
+function dateLabel(iso) {
+  const d = new Date(iso + 'T12:00:00');
+  return `${d.getDate()} ${TR_MONTHS[d.getMonth()]} ${d.getFullYear()}, ${TR_DAYS[d.getDay()]}`;
+}
+function shortDateLabel(iso) {
+  const d = new Date(iso + 'T12:00:00');
+  return `${d.getDate()} ${TR_MONTHS[d.getMonth()].slice(0,3)}`;
+}
+
+function fmt(n) {
+  if (!n) return '0';
+  if (n >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'') + 'M';
+  if (n >= 1000) return (n/1000).toFixed(1).replace(/\.0$/,'') + 'K';
+  return n.toString();
+}
+
+function isPodcastWorthy(tweet) {
+  const hasGoodTier = tweet.ty.some(t => PODCAST_TIERS[t]);
+  const minView = tweet.c === 'AI' ? 500000 : (tweet.c === 'UX/UI' ? 100000 : 50000);
+  const minReply = tweet.c === 'AI' ? 50 : (tweet.c === 'UX/UI' ? 15 : 10);
+  return hasGoodTier && tweet.v >= minView && tweet.r >= minReply;
+}
+
+function filterTweets() {
+  return TWEETS.filter(t => {
+    if (filters.date !== 'all' && t.d !== filters.date) return false;
+    if (filters.cat !== 'all' && t.c !== filters.cat) return false;
+    if (filters.type !== 'all' && !t.ty.includes(filters.type)) return false;
+    if (filters.podcastOnly && !isPodcastWorthy(t)) return false;
+    return true;
+  });
+}
+
+function sortTweets(list) {
+  const key = sortBy === 'views' ? 'v' : sortBy === 'replies' ? 'r' :
+              sortBy === 'engagement' ? 'e' : sortBy === 'likes' ? 'l' : 'b';
+  return [...list].sort((a, b) => (b[key] || 0) - (a[key] || 0));
+}
+
+function groupByDate(list) {
+  const g = {};
+  for (const t of list) {
+    if (!g[t.d]) g[t.d] = [];
+    g[t.d].push(t);
+  }
+  return g;
+}
+
+function escapeHTML(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderTweet(t) {
+  const typeBadges = t.ty.map(ty => {
+    const tier = PODCAST_TIERS[ty];
+    const cls = tier === 's' ? 'type-tag s-tier' : (tier === 'a' ? 'type-tag a-tier' : 'type-tag');
+    return `<span class="${cls}">${escapeHTML(ty)}</span>`;
+  }).join('');
+
+  const highViews = t.v >= 500000 ? 'high-views' : '';
+  const highReplies = t.r >= 100 ? 'high-replies' : '';
+  const catStyle = t.c === 'AI' ? 'background:var(--ai-bg);color:var(--ai)' :
+                   t.c === 'UX/UI' ? 'background:var(--ux-bg);color:var(--ux)' :
+                   'background:var(--pm-bg);color:var(--pm)';
+  const catLabel = t.c === 'Product Management' ? 'PM' : t.c;
+
+  return `<a href="${escapeHTML(t.url)}" target="_blank" rel="noopener" class="card">
+    <div class="card-header">
+      <span class="username">@${escapeHTML(t.u)}</span>
+      <span class="cat-badge" style="${catStyle}">${escapeHTML(catLabel)}</span>
+    </div>
+    <div class="title">${escapeHTML(t.t)}</div>
+    <div class="notes">${escapeHTML(t.n)}</div>
+    <div class="types">${typeBadges}</div>
+    <div class="stats">
+      <span class="stat ${highViews}">👁 <strong>${fmt(t.v)}</strong></span>
+      <span class="stat ${highReplies}">💬 <strong>${fmt(t.r)}</strong></span>
+      <span class="stat">❤ <strong>${fmt(t.l)}</strong></span>
+      <span class="stat">🔖 <strong>${fmt(t.b)}</strong></span>
+      <span class="stat">🔁 <strong>${fmt(t.rt)}</strong></span>
+    </div>
+  </a>`;
+}
+
+function renderSummary(filtered) {
+  const total = filtered.length;
+  const podcastCount = filtered.filter(isPodcastWorthy).length;
+  const totalViews = filtered.reduce((s,t) => s + (t.v||0), 0);
+  const totalReplies = filtered.reduce((s,t) => s + (t.r||0), 0);
+  const top = filtered.length ? filtered.reduce((a,b) => (a.v||0) > (b.v||0) ? a : b) : null;
+
+  return `<div class="summary-stat">
+      <span class="summary-stat-label">Toplam Tweet</span>
+      <span class="summary-stat-value">${total}</span>
+    </div>
+    <div class="summary-stat">
+      <span class="summary-stat-label">🎙️ Podcast'lik</span>
+      <span class="summary-stat-value accent">${podcastCount}</span>
+    </div>
+    <div class="summary-stat">
+      <span class="summary-stat-label">Toplam View</span>
+      <span class="summary-stat-value">${fmt(totalViews)}</span>
+    </div>
+    <div class="summary-stat">
+      <span class="summary-stat-label">Toplam Reply</span>
+      <span class="summary-stat-value">${fmt(totalReplies)}</span>
+    </div>
+    ${top ? `<div class="summary-stat">
+      <span class="summary-stat-label">En Yüksek View</span>
+      <span class="summary-stat-value">@${escapeHTML(top.u)} (${fmt(top.v)})</span>
+    </div>` : ''}`;
+}
+
+function buildDateChips() {
+  const dates = [...new Set(TWEETS.map(t => t.d))].sort().reverse();
+  const container = document.getElementById('date-chips');
+  let html = '<button class="chip date-chip active" data-filter="date" data-value="all">Tümü</button>';
+  for (const d of dates) {
+    html += `<button class="chip date-chip" data-filter="date" data-value="${d}">${shortDateLabel(d)}</button>`;
+  }
+  container.innerHTML = html;
+  // Re-attach event listeners on date chips
+  container.querySelectorAll('.chip[data-filter="date"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      filters.date = btn.dataset.value;
+      container.querySelectorAll('.chip[data-filter="date"]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      render();
+    });
+  });
+}
+
+function render() {
+  const filtered = sortTweets(filterTweets());
+  document.getElementById('summary-bar').innerHTML = renderSummary(filtered);
+
+  if (filtered.length === 0) {
+    document.getElementById('content').innerHTML = '<div class="empty-state"><h3>Filtreye uyan tweet bulunamadı</h3><p>Filtreleri sıfırlayıp tekrar deneyin.</p></div>';
+    return;
+  }
+
+  let html = '';
+  if (filters.date === 'all') {
+    const grouped = groupByDate(filtered);
+    const dates = Object.keys(grouped).sort().reverse();
+    for (const d of dates) {
+      html += `<div class="day-section">
+        <div class="day-header">
+          <h2 class="day-title">${dateLabel(d)}</h2>
+          <span class="day-count">${grouped[d].length} tweet</span>
+        </div>
+        <div class="grid">${grouped[d].map(renderTweet).join('')}</div>
+      </div>`;
+    }
+  } else {
+    html = `<div class="grid">${filtered.map(renderTweet).join('')}</div>`;
+  }
+  document.getElementById('content').innerHTML = html;
+}
+
+// Initial setup
+buildDateChips();
+
+// Set last-update timestamp (uses doc generation time)
+const now = new Date();
+document.getElementById('last-update').textContent = `· Son güncelleme: ${now.toLocaleDateString('tr-TR')} ${now.toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'})}`;
+
+document.querySelectorAll('.chip[data-filter="cat"]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    filters.cat = btn.dataset.value;
+    document.querySelectorAll('.chip[data-filter="cat"]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  });
+});
+
+document.getElementById('type-filter').addEventListener('change', e => {
+  filters.type = e.target.value;
+  render();
+});
+
+document.getElementById('sort-by').addEventListener('change', e => {
+  sortBy = e.target.value;
+  render();
+});
+
+document.getElementById('podcast-only').addEventListener('click', e => {
+  filters.podcastOnly = !filters.podcastOnly;
+  e.target.classList.toggle('active');
+  render();
+});
+
+render();
+</script>
+</body>
+</html>
