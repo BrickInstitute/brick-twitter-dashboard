@@ -53,6 +53,8 @@
   .chip.ux.active { background: var(--ux); border-color: var(--ux); }
   .chip.pm.active { background: var(--pm); border-color: var(--pm); }
   select { padding: 6px 12px; border-radius: 100px; border: 1px solid var(--border); background: white; font-size: 13px; font-family: inherit; cursor: pointer; }
+  select.date-older { padding: 6px 28px 6px 14px; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 4.5l3 3 3-3' stroke='%236b6b6b' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>"); background-repeat: no-repeat; background-position: right 10px center; appearance: none; -webkit-appearance: none; font-weight: 500; }
+  select.date-older.has-selection { background-color: var(--accent); color: white; border-color: var(--accent); background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 4.5l3 3 3-3' stroke='white' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>"); }
   main { max-width: 1400px; margin: 0 auto; padding: 32px; }
   .day-section { margin-bottom: 48px; }
   .day-header {
@@ -286,21 +288,60 @@ function renderSummary(filtered) {
 
 function buildDateChips() {
   const dates = [...new Set(TWEETS.map(t => t.d))].sort().reverse();
+  const recent = dates.slice(0, 3);  // En yeni 3 gün chip olarak
+  const older = dates.slice(3);       // Geri kalanlar dropdown'da
   const container = document.getElementById('date-chips');
+
   let html = '<button class="chip date-chip active" data-filter="date" data-value="all">Tümü</button>';
-  for (const d of dates) {
+  for (const d of recent) {
     html += `<button class="chip date-chip" data-filter="date" data-value="${d}">${shortDateLabel(d)}</button>`;
   }
+  if (older.length > 0) {
+    html += `<select class="date-older" id="date-older" title="Daha eski tarihler">
+      <option value="">Daha eski (${older.length})</option>`;
+    for (const d of older) {
+      html += `<option value="${d}">${dateLabel(d)}</option>`;
+    }
+    html += `</select>`;
+  }
   container.innerHTML = html;
-  // Re-attach event listeners on date chips
+
+  // Chip tıklamaları
   container.querySelectorAll('.chip[data-filter="date"]').forEach(btn => {
     btn.addEventListener('click', () => {
       filters.date = btn.dataset.value;
       container.querySelectorAll('.chip[data-filter="date"]').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
+      // Daha eski dropdown'ı sıfırla
+      const sel = container.querySelector('#date-older');
+      if (sel) {
+        sel.value = '';
+        sel.classList.remove('has-selection');
+      }
       render();
     });
   });
+
+  // Dropdown değişimi
+  const olderSel = container.querySelector('#date-older');
+  if (olderSel) {
+    olderSel.addEventListener('change', e => {
+      if (e.target.value) {
+        filters.date = e.target.value;
+        // Chip'lerin tümünden active'i kaldır
+        container.querySelectorAll('.chip[data-filter="date"]').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('has-selection');
+        render();
+      } else {
+        // Boş seçildi → Tümü chip'ine geri dön
+        filters.date = 'all';
+        e.target.classList.remove('has-selection');
+        const tumu = container.querySelector('.chip[data-value="all"]');
+        if (tumu) tumu.classList.add('active');
+        render();
+      }
+    });
+  }
 }
 
 function render() {
