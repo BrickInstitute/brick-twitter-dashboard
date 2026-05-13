@@ -2,8 +2,8 @@ name: Update Twitter Dashboard
 
 on:
   schedule:
-    # Her gün 06:00 UTC (09:00 Istanbul) çalışır
-    - cron: '0 6 * * *'
+    # Her gün 03:00 UTC (06:00 Istanbul) çalışır
+    - cron: '0 3 * * *'
   workflow_dispatch:  # Actions sekmesinden manuel tetiklenebilir
 
 jobs:
