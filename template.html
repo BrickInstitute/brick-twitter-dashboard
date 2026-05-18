@@ -70,6 +70,40 @@
     cursor: pointer; text-decoration: none; color: inherit; position: relative;
   }
   .card:hover { border-color: var(--accent); box-shadow: 0 4px 12px rgba(217,119,87,0.12); transform: translateY(-2px); }
+  .card-image {
+    position: relative;
+    width: calc(100% + 36px);
+    margin: -18px -18px 14px;
+    aspect-ratio: 16 / 9;
+    background-color: var(--bg);
+    background-size: cover;
+    background-position: center;
+    border-radius: 12px 12px 0 0;
+    overflow: hidden;
+  }
+  .card-image::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0) 70%, rgba(0,0,0,0.15));
+    pointer-events: none;
+  }
+  .media-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 2;
+    background: rgba(0,0,0,0.65);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.3px;
+    backdrop-filter: blur(4px);
+  }
+  .media-badge.video::before { content: '▶ '; }
+  .media-badge.gif { background: rgba(217,119,87,0.9); }
   .card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
   .username { font-weight: 700; font-size: 14px; color: var(--accent); }
   .cat-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -239,7 +273,17 @@ function renderTweet(t) {
                    'background:var(--pm-bg);color:var(--pm)';
   const catLabel = t.c === 'Product Management' ? 'PM' : t.c;
 
+  // Media thumbnail (if Media Preview URL present)
+  let mediaHTML = '';
+  if (t.m) {
+    let badge = '';
+    if (t.mt === 'video') badge = '<span class="media-badge video">VIDEO</span>';
+    else if (t.mt === 'gif') badge = '<span class="media-badge gif">GIF</span>';
+    mediaHTML = `<div class="card-image" style="background-image: url('${escapeHTML(t.m)}')">${badge}</div>`;
+  }
+
   return `<a href="${escapeHTML(t.url)}" target="_blank" rel="noopener" class="card">
+    ${mediaHTML}
     <div class="card-header">
       <span class="username">@${escapeHTML(t.u)}</span>
       <span class="cat-badge" style="${catStyle}">${escapeHTML(catLabel)}</span>

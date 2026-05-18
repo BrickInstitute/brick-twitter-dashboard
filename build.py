@@ -68,6 +68,14 @@ def transform(rec):
     if title.startswith(prefix):
         title = title[len(prefix):]
 
+    # Media: read first attachment URL from "Media Preview" field
+    media_preview = f.get('Media Preview', []) or []
+    media_url = ''
+    if media_preview and isinstance(media_preview, list) and len(media_preview) > 0:
+        first = media_preview[0]
+        # Airtable attachments include a "url" field
+        media_url = first.get('url', '') if isinstance(first, dict) else ''
+
     return {
         'u': username,
         't': title,
@@ -82,6 +90,8 @@ def transform(rec):
         'd': f.get('Tarih', '') or '',
         'c': f.get('Kategori', '') or '',
         'ty': f.get('İçerik Türü', []) or [],
+        'm': media_url,                                  # Media Preview attachment URL (thumbnail)
+        'mt': f.get('Media Tipi', '') or '',             # 'photo' / 'video' / 'gif' / 'none'
     }
 
 
