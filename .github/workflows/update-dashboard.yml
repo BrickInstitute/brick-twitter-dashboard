@@ -2,8 +2,8 @@ name: Update Twitter Dashboard
 
 on:
   schedule:
-    # Her gün 03:00 UTC (06:00 Istanbul) çalışır
-    - cron: '0 3 * * *'
+    # Her gün 06:00 UTC (09:00 Istanbul) çalışır
+    - cron: '0 6 * * *'
   workflow_dispatch:  # Actions sekmesinden manuel tetiklenebilir
 
 jobs:
@@ -32,7 +32,17 @@ jobs:
           git add index.html
           if git diff --staged --quiet; then
             echo "No changes to commit"
-          else
-            git commit -m "Auto-update dashboard $(date -u +'%Y-%m-%d %H:%M UTC')"
-            git push
+            exit 0
           fi
+          git commit -m "Auto-update dashboard $(date -u +'%Y-%m-%d %H:%M UTC')"
+          # Retry with rebase up to 3 times — başka bir commit araya girmişse handle eder
+          for i in 1 2 3; do
+            if git pull --rebase origin main && git push; then
+              echo "Push successful on attempt $i"
+              exit 0
+            fi
+            echo "Attempt $i failed, retrying after 5s..."
+            sleep 5
+          done
+          echo "Push failed after 3 attempts"
+          exit 1
