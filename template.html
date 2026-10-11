@@ -111,8 +111,9 @@
   .notes { font-size: 13px; color: var(--muted); line-height: 1.5; margin-bottom: 12px; flex: 1; }
   .types { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
   .type-tag { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 100px; background: var(--bg); color: var(--muted); border: 1px solid var(--border); white-space: nowrap; }
-  .type-tag.s-tier { background: #fff0ed; color: #c44a25; border-color: #f0b9a3; }
-  .type-tag.a-tier { background: #fff8e6; color: #a07000; border-color: #f0d895; }
+  .pod-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 100px; background: var(--bg); color: var(--muted); border: 1px solid var(--border); white-space: nowrap; }
+  .pod-badge.hot { background: #fff0ed; color: #c44a25; border-color: #f0b9a3; }
+  .pod-why { font-size: 12px; line-height: 1.45; color: #8a3a1e; background: #fff7f4; border-left: 3px solid #d97757; padding: 6px 10px; border-radius: 0 6px 6px 0; margin-bottom: 10px; }
   .stats { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); padding-top: 10px; border-top: 1px solid var(--border); }
   .stat { display: flex; gap: 4px; align-items: center; }
   .stat strong { color: var(--text); font-weight: 600; }
@@ -160,15 +161,15 @@
         <option value="Ürün Tanıtımı">Ürün Tanıtımı</option>
         <option value="Ürün Yenilik Tanıtımı">Ürün Yenilik Tanıtımı</option>
         <option value="Yöntem Paylaşımı">Yöntem Paylaşımı</option>
-        <option value="Araştırma Bulgusu">Araştırma Bulgusu (Podcast 🥇)</option>
+        <option value="Araştırma Bulgusu">Araştırma Bulgusu</option>
         <option value="Sektör Yorumu">Sektör Yorumu</option>
-        <option value="Etik/Risk Tartışması">Etik/Risk Tartışması (Podcast 🥇)</option>
+        <option value="Etik/Risk Tartışması">Etik/Risk Tartışması</option>
         <option value="Şirket Haberi">Şirket Haberi</option>
         <option value="Veri/Benchmark">Veri/Benchmark</option>
         <option value="Kaynak Listesi">Kaynak Listesi</option>
-        <option value="Vaka/Hikaye">Vaka/Hikaye (Podcast 🥇)</option>
+        <option value="Vaka/Hikaye">Vaka/Hikaye</option>
         <option value="Mizah/Espri">Mizah/Espri</option>
-        <option value="Eleştiri">Eleştiri (Podcast 🥈)</option>
+        <option value="Eleştiri">Eleştiri</option>
       </select>
     </div>
     <div class="control-group">
@@ -179,10 +180,11 @@
         <option value="engagement">Engagement (yüksekten)</option>
         <option value="likes">Like (yüksekten)</option>
         <option value="bookmarks">Bookmark (yüksekten)</option>
+        <option value="podcast">Podcast puanı (yüksekten)</option>
       </select>
     </div>
     <div class="control-group">
-      <button class="chip" id="podcast-only">🎙️ Sadece Podcast'lik</button>
+      <button class="chip" id="podcast-only" title="AI hakemi 7+ puan verdi">🎙️ Sadece Podcast'lik</button>
     </div>
   </div>
 </header>
@@ -193,13 +195,10 @@
 <script>
 const TWEETS = ___TWEETS_DATA_PLACEHOLDER___;
 
-const PODCAST_TIERS = {
-  'Araştırma Bulgusu': 's',
-  'Etik/Risk Tartışması': 's',
-  'Vaka/Hikaye': 's',
-  'Eleştiri': 'a',
-  'Sektör Yorumu': 'a'
-};
+// Podcast'lik kararı: Airtable'daki "Podcast Puanı" (AI hakemi, 1-10).
+// Rubrik: Brick Pazarlama projesi, channels/twitter/podcast-hakemi-rubrik.md
+// Puanı olmayan (5 Ekim 2026 öncesi) kayıtlar Podcast'lik sayılmaz.
+const PODCAST_THRESHOLD = 7;
 
 let filters = { date: 'all', cat: 'all', type: 'all', podcastOnly: false };
 let sortBy = 'views';
@@ -223,11 +222,12 @@ function fmt(n) {
   return n.toString();
 }
 
+function hasScore(tweet) {
+  return typeof tweet.ps === 'number';
+}
+
 function isPodcastWorthy(tweet) {
-  const hasGoodTier = tweet.ty.some(t => PODCAST_TIERS[t]);
-  const minView = tweet.c === 'AI' ? 500000 : (tweet.c === 'UX/UI' ? 100000 : 50000);
-  const minReply = tweet.c === 'AI' ? 50 : (tweet.c === 'UX/UI' ? 15 : 10);
-  return hasGoodTier && tweet.v >= minView && tweet.r >= minReply;
+  return hasScore(tweet) && tweet.ps >= PODCAST_THRESHOLD;
 }
 
 function filterTweets() {
@@ -241,6 +241,9 @@ function filterTweets() {
 }
 
 function sortTweets(list) {
+  if (sortBy === 'podcast') {
+    return [...list].sort((a, b) => ((hasScore(b) ? b.ps : 0) - (hasScore(a) ? a.ps : 0)) || ((b.r || 0) - (a.r || 0)));
+  }
   const key = sortBy === 'views' ? 'v' : sortBy === 'replies' ? 'r' :
               sortBy === 'engagement' ? 'e' : sortBy === 'likes' ? 'l' : 'b';
   return [...list].sort((a, b) => (b[key] || 0) - (a[key] || 0));
@@ -260,11 +263,14 @@ function escapeHTML(s) {
 }
 
 function renderTweet(t) {
-  const typeBadges = t.ty.map(ty => {
-    const tier = PODCAST_TIERS[ty];
-    const cls = tier === 's' ? 'type-tag s-tier' : (tier === 'a' ? 'type-tag a-tier' : 'type-tag');
-    return `<span class="${cls}">${escapeHTML(ty)}</span>`;
-  }).join('');
+  let podBadge = '';
+  if (hasScore(t)) {
+    const hot = t.ps >= PODCAST_THRESHOLD ? ' hot' : '';
+    podBadge = `<span class="pod-badge${hot}" title="AI hakemi podcast puanı">🎙️ ${t.ps}/10</span>`;
+  }
+  const typeBadges = podBadge + t.ty.map(ty => `<span class="type-tag">${escapeHTML(ty)}</span>`).join('');
+  const podWhy = (hasScore(t) && t.ps >= PODCAST_THRESHOLD && t.pg)
+    ? `<div class="pod-why">${escapeHTML(t.pg)}</div>` : '';
 
   const highViews = t.v >= 500000 ? 'high-views' : '';
   const highReplies = t.r >= 100 ? 'high-replies' : '';
@@ -290,6 +296,7 @@ function renderTweet(t) {
     </div>
     <div class="title">${escapeHTML(t.t)}</div>
     <div class="notes">${escapeHTML(t.n)}</div>
+    ${podWhy}
     <div class="types">${typeBadges}</div>
     <div class="stats">
       <span class="stat ${highViews}">👁 <strong>${fmt(t.v)}</strong></span>
