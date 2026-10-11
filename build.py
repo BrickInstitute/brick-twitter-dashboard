@@ -98,6 +98,7 @@ def transform(rec):
         'mt': f.get('Media Tipi', '') or '',             # 'photo' / 'video' / 'gif' / 'none'
         'ps': puan,                                      # AI hakemi Podcast Puanı (1-10) ya da None
         'pg': f.get('Podcast Gerekçesi', '') or '',      # AI hakemi gerekçesi
+        'ms': bool(f.get('Mustafa Seçti')),              # X "Brick Podcast" klasöründen elle seçildi
     }
 
 

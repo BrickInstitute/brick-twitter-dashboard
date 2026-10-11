@@ -184,7 +184,7 @@
       </select>
     </div>
     <div class="control-group">
-      <button class="chip" id="podcast-only" title="AI hakemi 7+ puan verdi">🎙️ Sadece Podcast'lik</button>
+      <button class="chip" id="podcast-only" title="AI hakemi 7+ puan verdi ya da Mustafa seçti">🎙️ Sadece Podcast'lik</button>
     </div>
   </div>
 </header>
@@ -197,6 +197,7 @@ const TWEETS = ___TWEETS_DATA_PLACEHOLDER___;
 
 // Podcast'lik kararı: Airtable'daki "Podcast Puanı" (AI hakemi, 1-10).
 // Rubrik: Brick Pazarlama projesi, channels/twitter/podcast-hakemi-rubrik.md
+// "Mustafa Seçti" işaretli kayıtlar puandan bağımsız Podcast'liktir.
 // Puanı olmayan (5 Ekim 2026 öncesi) kayıtlar Podcast'lik sayılmaz.
 const PODCAST_THRESHOLD = 7;
 
@@ -227,7 +228,7 @@ function hasScore(tweet) {
 }
 
 function isPodcastWorthy(tweet) {
-  return hasScore(tweet) && tweet.ps >= PODCAST_THRESHOLD;
+  return !!tweet.ms || (hasScore(tweet) && tweet.ps >= PODCAST_THRESHOLD);
 }
 
 function filterTweets() {
@@ -263,13 +264,13 @@ function escapeHTML(s) {
 }
 
 function renderTweet(t) {
-  let podBadge = '';
+  let podBadge = t.ms ? '<span class="pod-badge hot" title="X Brick Podcast klasöründen seçildi">⭐ Mustafa seçti</span>' : '';
   if (hasScore(t)) {
     const hot = t.ps >= PODCAST_THRESHOLD ? ' hot' : '';
     podBadge = `<span class="pod-badge${hot}" title="AI hakemi podcast puanı">🎙️ ${t.ps}/10</span>`;
   }
   const typeBadges = podBadge + t.ty.map(ty => `<span class="type-tag">${escapeHTML(ty)}</span>`).join('');
-  const podWhy = (hasScore(t) && t.ps >= PODCAST_THRESHOLD && t.pg)
+  const podWhy = (hasScore(t) && isPodcastWorthy(t) && t.pg)
     ? `<div class="pod-why">${escapeHTML(t.pg)}</div>` : '';
 
   const highViews = t.v >= 500000 ? 'high-views' : '';
