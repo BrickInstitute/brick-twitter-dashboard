@@ -76,6 +76,10 @@ def transform(rec):
         # Airtable attachments include a "url" field
         media_url = first.get('url', '') if isinstance(first, dict) else ''
 
+    # Podcast hakemi puanı: henüz puanlanmamış kayıtlarda None kalır
+    puan = f.get('Podcast Puanı')
+    puan = int(puan) if isinstance(puan, (int, float)) else None
+
     return {
         'u': username,
         't': title,
@@ -92,6 +96,9 @@ def transform(rec):
         'ty': f.get('İçerik Türü', []) or [],
         'm': media_url,                                  # Media Preview attachment URL (thumbnail)
         'mt': f.get('Media Tipi', '') or '',             # 'photo' / 'video' / 'gif' / 'none'
+        'ps': puan,                                      # AI hakemi Podcast Puanı (1-10) ya da None
+        'pg': f.get('Podcast Gerekçesi', '') or '',      # AI hakemi gerekçesi
+        'ms': bool(f.get('Mustafa Seçti')),              # X "Brick Podcast" klasöründen elle seçildi
     }
 
 
