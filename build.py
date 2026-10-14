@@ -79,6 +79,8 @@ def transform(rec):
     # Podcast hakemi puanı: henüz puanlanmamış kayıtlarda None kalır
     puan = f.get('Podcast Puanı')
     puan = int(puan) if isinstance(puan, (int, float)) else None
+    gpuan = f.get('Görsel Puanı')
+    gpuan = int(gpuan) if isinstance(gpuan, (int, float)) else None
 
     return {
         'u': username,
@@ -99,6 +101,8 @@ def transform(rec):
         'ps': puan,                                      # AI hakemi Podcast Puanı (1-10) ya da None
         'pg': f.get('Podcast Gerekçesi', '') or '',      # AI hakemi gerekçesi
         'ms': bool(f.get('Mustafa Seçti')),              # X "Brick Podcast" klasöründen elle seçildi
+        'gs': gpuan,                                     # Görsel Puanı (soru + cevaplar carousel'i, 1-10) ya da None
+        'gn': f.get('Görsel Notu', '') or '',            # Görsel için soru ve seçilmiş cevaplar
     }
 
 
